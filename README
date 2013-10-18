@@ -1,0 +1,80 @@
+How to get the knob running
+
+Hardware
+--------
+
+Make sure you have the following hardware components available:
+
+- The knob itself (Mercedes-Benz part number: A172 870 14 58 & A204 870 20 58)
+- A CAN to USB converter (CANUSB, see http://www.canusb.com/)
+- 2x twisted pair wires
+- 2 D-Sub Crimp Female Pins
+- 1 D-I-Y Banana Plug w/ Set Screw (Pomona 1825-02)
+- 1 9Pin Female CRIMP HOUSING (DH 9HS/T P10) (http://zackelectronics.com/connectors/d-sub-connectors/sockets-plugs/pan-pacific-dh-9hs-t-d-sub-9-pin-female-crimp-housing-tin-plated.html)
+- 1 4-Pin Connector
+- 4 MQS Pins
+
+Proceed as follows:
+
+Cut off 2mm of the insulation on each end of wire #1 and #2. Fix a D-Sub Crimp
+Female Pin each at one end of wire #1 and #2. Plug wire #2 into port seven of
+the 9Pin Female CRIMP HOUSING and  wire #1 into port two. Fix a MQS-pin each at
+the other ends of wires #1 and #2. Plug wire #1 into port four of the
+4-Pin-Connector and wire #2 into port three.
+
+Cut off 2 mm of the insulation of wire #3 and #4 on the one side and 5 mm on the
+other side. Fix an MQS-pin each on the end of the wires whose insulation had
+been cut off 2mm. Then plug wire #3 into port two of the 4-Pin-Connector and
+wire #4 into port one.
+Put wire #4's other end into the black banana plug. Put wire #3's other end
+into the red banana plug.
+
+In order to terminate the CAN bus you can either use a 120 Ohm resistor
+connected between CAN_H and CAN_L or buy a CAN terminator, e.g.:
+- Peak PCAN-Term (IPEK-003002)
+- IXXAT CAN Terminator - pass through (1.04.0075.03000)
+
+You can now connect the 9Pin Female CRIMP HOUSING with your CANUSB adapter and
+the knob's cables with the other end of the 4-Pin-Connecter respectively.
+
+Software
+--------
+
+You will need the FTDI VCP Driver found at http://www.canusb.com/.
+
+In order to install it on a Windows system proceed as follows:
+- Extract the driver that you have just downloaded to some location.
+- Plug the USB cable to your computer.
+- Go to the 'Device Manager', locate CANUSB and double click the device.
+- Click on the 'Driver' tab, 'Update Driver' and specify the location to which
+  you extracted the driver.
+- After the driver has been installed, right-click on the CANUSB, click on
+  'Properties', go to the 'Advanced' tab and check the 'Load VCP' check-box.
+- Pull off the USB cable and plug it in again.
+- The USBCAN device should now ask for another driver. Go to 'Driver' tab again,
+  click 'Update Driver' and specify the same location of the FTDI driver again.
+- Your CANUSB should now work properly. To verify that get the free 'TeraTerm'
+  software (http://ttssh2.sourceforge.jp/index.html.en), specify the correct
+  port (look it up at 'Device Manager' → 'COM Ports'), type 'V' and press enter.
+  If 'V1011' is returned, it is working correctly.
+
+In general, Linux kernels are deployed with the required driver already on
+board. If your system does not recognize the CANUSB device, make sure the
+USB FTDI Single Port Serial Driver (Symbol: USB_SERIAL_FTDI_SIO) is enabled
+within the Linux Kernel.
+
+In order to test it you may download 'GtkTerm', 'moserial' or 'minicom', run it,
+open and configure a new connection to the correct port and settings
+(type 'dmesg | grep tty' in your shell to determine the port), type 'V' and
+press enter. If 'V1011' is returned, it works correctly.
+
+Running the application
+
+If your OS is Linux, make sure 'libx11-dev' and 'libxtst-dev' is installed
+('sudo apt-get install libx11-dev libxtst-dev').
+
+Execute the 'daiccu' executable from cmd line and pass the port name (e.g.
+'daiccu.exe COM3' on Windows or './daiccu /dev/ttyUSB0' on Linux systems).
+You can determine the correct port name by looking it up on the 'Device Manager'
+(Windows) or by typing 'dmesg | grep tty' in your shell (Linux).
+

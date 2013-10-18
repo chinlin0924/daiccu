@@ -68,12 +68,10 @@ static void processCcuCommand(void *handle, CcuCommands cmd, int value)
     update = update || ((currentTime - canCcu->lastUpdates[index] > NEED_UPDATE_TIME));
     /* printf("main: Update required for command %d and value %d and time %d : %s\n",
          *cmd,value,currentTime - priv->lastUpdates[cmd], result ? "true" : "false");*/
-    if(update == true) {
-        canCcu->lastUpdates[index] = currentTime;
-    }
     canCcu->lastValue[index] = value;
     if (!update)
         return;
+    canCcu->lastUpdates[index] = currentTime;
 
     /* Send input */
     INPUT inputs[1];

@@ -56,9 +56,9 @@ bool serialPortOpen(serialPort* port, int argc, char** argv)
     /* Set timeouts in milliseconds*/
     timeouts.ReadIntervalTimeout         = 50;
     timeouts.ReadTotalTimeoutConstant    = 50;
-    timeouts.ReadTotalTimeoutMultiplier  = 10;
-    timeouts.WriteTotalTimeoutConstant   = 50;
-    timeouts.WriteTotalTimeoutMultiplier = 10;
+    timeouts.ReadTotalTimeoutMultiplier  = 0;
+    timeouts.WriteTotalTimeoutConstant   = 0;
+    timeouts.WriteTotalTimeoutMultiplier = 0;
     if (!SetCommTimeouts(port->serial, &timeouts)) {
         printf("SerialPort: Setting serialport timeouts failed!\n");
         return false;

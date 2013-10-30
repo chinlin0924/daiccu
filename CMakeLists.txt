@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.10.1 FATAL_ERROR)
+cmake_minimum_required(VERSION 2.8)
 
 project(daiccu)
 
@@ -42,7 +42,7 @@ if(UNIX)
         set(LIBS ${LIBS} ${X11_LIBRARIES})
         include_directories(${X11_INCLUDE_DIR})
     else()
-        message(FATAL_ERROR "Failed to find X11")
+        message("Failed to find X11")
     endif(X11_FOUND)
 
     find_library(X11_XTest_LIB Xtst ${X11_LIB_SEARCH_PATH})
@@ -50,7 +50,7 @@ if(UNIX)
         set(LIBS ${LIBS} ${X11_XTest_LIB})
         include_directories(${X11_XTest_INCLUDE_DIR})
     else()
-        message(FATAL_ERROR "Failed to find XTest library")
+        message("Failed to find XTest library")
     endif(X11_XTest_FOUND)
 
     if(X11_FOUND AND X11_XTest_FOUND)

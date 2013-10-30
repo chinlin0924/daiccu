@@ -40,7 +40,7 @@ typedef struct {
     canDev *can;
 } daiCcu;
 
-static void processCcuCommand(void *handle, CcuCommands cmd, int value)
+static void processCcuCommand(void *handle, CcuCommands cmd, bool pressed)
 {
 #ifdef USE_X11
     Display *display;
@@ -68,18 +68,18 @@ static void processCcuCommand(void *handle, CcuCommands cmd, int value)
     /*generate input*/
     keycode = XKeysymToKeycode(display, key);
 
-    XTestFakeKeyEvent(display, keycode, value, 0);
+    XTestFakeKeyEvent(display, keycode, pressed, 0);
     XFlush(display);
     XCloseDisplay(display);
 #endif
 
 #ifdef _DEBUG
-    printf("main: Process command: %d %s\n", cmd,
-           value ? "pressed" : "released");
+    printf("main: Process command: 0x%08x %s\n", cmd,
+           pressed ? "pressed" : "released");
 #endif
 }
 
-static void processCcuRotation(void* handle, int value)
+static void processCcuRotation(void *handle, int rotate)
 {
 #ifdef USE_X11
     int i = 0;
@@ -87,14 +87,14 @@ static void processCcuRotation(void* handle, int value)
     Display *display = XOpenDisplay(NULL);
 
     /* Left or right rotation? */
-    if(value < 0) {
+    if(rotate < 0) {
         keycode = XKeysymToKeycode(display, XK_Left);
-        value = -value;
+        rotate = -rotate;
     } else {
         keycode = XKeysymToKeycode(display, XK_Right);
     }
 
-    for(i = 0; i < value ; i++) {
+    for(i = 0; i < rotate ; i++) {
         XTestFakeKeyEvent(display, keycode, True, 0);
         XTestFakeKeyEvent(display, keycode, False, 0);
         XFlush(display);
@@ -104,15 +104,15 @@ static void processCcuRotation(void* handle, int value)
 #endif
 
 #ifdef _DEBUG
-    printf("main: Process rotate: %d\n", value);
+    printf("main: Process rotate: %d\n", rotate);
 #endif
 }
 
 
-static void processMultipleCommands(void *handle, uint32_t cmds)
+static void processCcuAtOnces(void *handle, uint32_t cmds, int rotate)
 {
 #ifdef _DEBUG
-    printf("main: Process multiple commands: 0x%08x\n", cmds);
+    printf("main: Process commands: 0x%08x, rotate: %d\n", cmds, rotate);
 #endif
 }
 
@@ -157,8 +157,6 @@ static void readInput() {
     bool waiting = true;
     char inputChar = 0;
     while (waiting) {
-        // you can add your own key handling here.
-        // Keys can be typed in the console window
         inputChar = getchar();
         switch (inputChar) {
             case 'q': {
@@ -180,7 +178,7 @@ int main(int argc, char **argv)
     ccu->handle = &canCcu;
     ccu->ccuProcessCommand = processCcuCommand;
     ccu->ccuProcessRotation = processCcuRotation;
-    ccu->ccuProcessMultipleCommands = processMultipleCommands;
+    ccu->ccuProcessAtOnces = processCcuAtOnces;
 
     /* Init CAN */
     can = canUsbGet();

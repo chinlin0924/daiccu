@@ -36,7 +36,7 @@ typedef struct {
     DWORD lastValue[13];
 } daiCcu;
 
-static void processCcuCommand(void *handle, CcuCommands cmd, int value)
+static void processCcuCommand(void *handle, CcuCommands cmd, bool pressed)
 {
     daiCcu *canCcu = handle;
 
@@ -63,12 +63,12 @@ static void processCcuCommand(void *handle, CcuCommands cmd, int value)
     bool update = false;
     DWORD currentTime = GetTickCount();
     /*has the button been released or pressed?*/
-    update = (canCcu->lastValue[index] != value);
+    update = (canCcu->lastValue[index] != pressed);
     /*has the time limit expired?*/
     update = update || ((currentTime - canCcu->lastUpdates[index] > NEED_UPDATE_TIME));
     /* printf("main: Update required for command %d and value %d and time %d : %s\n",
          *cmd,value,currentTime - priv->lastUpdates[cmd], result ? "true" : "false");*/
-    canCcu->lastValue[index] = value;
+    canCcu->lastValue[index] = pressed;
     if (!update)
         return;
     canCcu->lastUpdates[index] = currentTime;
@@ -78,7 +78,7 @@ static void processCcuCommand(void *handle, CcuCommands cmd, int value)
     KEYBDINPUT keyinputs[1];
 
     keyinputs[0].wVk = key;
-    keyinputs[0].dwFlags = (value == 0) ? KEYEVENTF_KEYUP : 0;
+    keyinputs[0].dwFlags = (pressed == 0) ? KEYEVENTF_KEYUP : 0;
 
     inputs[0].type = INPUT_KEYBOARD;
     inputs[0].ki = keyinputs[0];
@@ -88,12 +88,12 @@ static void processCcuCommand(void *handle, CcuCommands cmd, int value)
     }
 
 #ifdef _DEBUG
-    printf("main: Process command: %d %s\n", cmd,
-           value ? "pressed" : "released");
+    printf("main: Process command: 0x%08x %s\n", cmd,
+           pressed ? "pressed" : "released");
 #endif
 }
 
-static void processCcuRotation(void* handle, int value)
+static void processCcuRotation(void* handle, int rotate)
 {
     DWORD key;
     int i = 0;
@@ -101,14 +101,14 @@ static void processCcuRotation(void* handle, int value)
     KEYBDINPUT keyinputs[2];
 
     /* Left or right rotation? */
-    if(value < 0) {
+    if(rotate < 0) {
         key = VK_LEFT;
-        value = -value;
+        rotate = -rotate;
     } else {
         key = VK_RIGHT;
     }
 
-    for (i = 0; i < value; i++) {
+    for (i = 0; i < rotate; i++) {
         keyinputs[0].wVk = key;
         keyinputs[0].dwFlags = 0;
 
@@ -126,14 +126,14 @@ static void processCcuRotation(void* handle, int value)
         }
     }
 #ifdef _DEBUG
-    printf("main: Process rotate: %d\n", value);
+    printf("main: Process rotate: %d\n", rotate);
 #endif
 }
 
-static void processMultipleCommands(void *handle, uint32_t cmds)
+static void processCcuAtOnces(void *handle, uint32_t cmds, int rotate)
 {
 #ifdef _DEBUG
-    printf("main: Process multiple commands: 0x%08x\n", cmds);
+    printf("main: Process commands: 0x%08x, rotate: %d\n", cmds, rotate);
 #endif
 }
 
@@ -147,7 +147,7 @@ static void stateChanged(void *handle, bool open)
 }
 
 static void messageReceived(void *handle, uint16_t id, uint8_t dlc,
-                     const uint8_t *bytes)
+                            const uint8_t *bytes)
 {
     daiCcu *canCcu = handle;
     ccuProcessorProcess(canCcu->ccu, id, dlc, bytes);
@@ -176,8 +176,6 @@ static void readInput() {
     bool waiting = true;
     char inputChar = 0;
     while (waiting) {
-        // you can add your own key handling here.
-        // Keys can be typed in the console window
         inputChar = getchar();
         switch (inputChar) {
             case 'q': {
@@ -199,7 +197,7 @@ int main(int argc, char **argv)
     ccu->handle = &canCcu;
     ccu->ccuProcessCommand = processCcuCommand;
     ccu->ccuProcessRotation = processCcuRotation;
-    ccu->ccuProcessMultipleCommands = processMultipleCommands;
+    ccu->ccuProcessAtOnces = processCcuAtOnces;
 
     /* Enable longpress */
     ccu->processWhilePressed = true;

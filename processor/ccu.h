@@ -31,41 +31,38 @@ extern "C"
 #endif
 
 typedef enum {
-    CcuUp        = 0x0001,
-    CcuDown      = 0x0002,
-    CcuLeft      = 0x0004,
-    CcuRight     = 0x0008,
-    CcuUpLeft    = 0x0010,
-    CcuUpRight   = 0x0020,
-    CcuDownLeft  = 0x0040,
-    CcuDownRight = 0x0080,
-    CcuSelect    = 0x0100,
-    CcuBack      = 0x0200,
-    CcuClear     = 0x0400,
-    CcuSeat      = 0x0800,
-    CcuFavorite  = 0x1000
+    CcuNone      = 0x0000,
+    CcuBack      = 0x0002,
+    CcuSeat      = 0x0004,
+    CcuClear     = 0x0020,
+    CcuFavorite  = 0x0040,
+    CcuSelect    = 0x0080,
+    CcuUp        = 0x0100,
+    CcuUpRight   = 0x0200,
+    CcuRight     = 0x0400,
+    CcuDownRight = 0x0800,
+    CcuDown      = 0x1000,
+    CcuDownLeft  = 0x2000,
+    CcuLeft      = 0x4000,
+    CcuUpLeft    = 0x8000
 } CcuCommands;
 
-
-typedef void (*ccuProcessCommandProc)(void *handle, CcuCommands cmd, int pressed);
-typedef void (*ccuProcessRotationProc)(void *handle, int value);
-typedef void (*ccuProcessMultipleCommandsProc)(void *handle, uint32_t cmds);
+typedef void (*ccuProcessCommandProc)(void *handle, CcuCommands cmd, bool pressed);
+typedef void (*ccuProcessRotationProc)(void *handle, int rotate);
+typedef void (*ccuProcessAtOncesProc)(void *handle, uint32_t cmds, int rotate);
 
 typedef struct {
     bool running;
     uint8_t stateId;
     uint16_t lastPosition;
     uint32_t lastCmdsMask;
-    uint8_t lastPushs;
-    uint8_t lastDirections;
-    uint8_t lastButtons;
     long lastKeepAlive;
 
     void *handle;
     bool processWhilePressed;
     ccuProcessCommandProc ccuProcessCommand;
     ccuProcessRotationProc ccuProcessRotation;
-    ccuProcessMultipleCommandsProc ccuProcessMultipleCommands;
+    ccuProcessAtOncesProc ccuProcessAtOnces;
 } ccuProcessor;
 
 ccuProcessor* ccuProcessorGet(void);

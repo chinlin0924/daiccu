@@ -31,27 +31,6 @@
 #define CCU_ROTATE_MID 4999
 #define CCU_STATE_ID 0xFE
 
-#define DirectionPush    0x80
-
-enum {
-    DirectionNone      = 0x00,
-    DirectionUp        = 0x01,
-    DirectionUpRight   = 0x02,
-    DirectionRight     = 0x04,
-    DirectionDownRight = 0x08,
-    DirectionDown      = 0x10,
-    DirectionDownLeft  = 0x20,
-    DirectionLeft      = 0x40,
-    DirectionUpLeft    = 0x80
-};
-
-enum {
-    ButtonBack  = 0x02,
-    ButtonSeat  = 0x04,
-    ButtonClear = 0x20,
-    ButtonStar  = 0x40
-};
-
 const char* ccuCommandToString(CcuCommands cmd)
 {
     switch (cmd) {
@@ -85,22 +64,20 @@ ccuProcessor* ccuProcessorGet()
     ccu->stateId            = CCU_STATE_ID;
     ccu->lastPosition       = CCU_ROTATE_MID;
     ccu->lastCmdsMask       = 0;
-    ccu->lastPushs          = 0;
-    ccu->lastDirections     = 0;
-    ccu->lastButtons        = 0;
     ccu->lastKeepAlive      = 0;
 
     /* Init callbacks*/
     ccu->handle             = 0;
     ccu->ccuProcessCommand  = 0;
     ccu->ccuProcessRotation = 0;
-    ccu->ccuProcessMultipleCommands = 0;
+    ccu->ccuProcessAtOnces = 0;
 
     return ccu;
 }
 
 bool ccuProcessorSendKeepAliveMessage(ccuProcessor *ccu, void* handle)
 {
+    (void)ccu;
     return canTransmit(handle, 0x43f, 8, nmKeepAliveData);
 }
 
@@ -124,91 +101,54 @@ bool ccuProcessorSendStateMessage(ccuProcessor* ccu, void* handle)
     return canTransmit(handle, 0x1bb, 8, ccuStateMessageData);
 }
 
-#define ccuProcessorProcessMask(cur, cmd, mask) \
-    ((cur) & (mask)) ? cmd : 0
-
-#define ccuProcessorProcessBinary(cmd, mask) \
-    isPressed = current & (mask) ? 1 : 0; \
-    if ((ccu->processWhilePressed && isPressed) || (changed & (mask))) \
+#define ccuProcessorProcessBinary(cmd) \
+    isPressed = (current & cmd) ? true : false; \
+    if ((ccu->processWhilePressed && isPressed) || (changed & cmd)) \
         ccu->ccuProcessCommand(ccu->handle, cmd, isPressed);
 
 static bool ccuProcessorProcessActuation(ccuProcessor *ccu, uint8_t dlc,
                                          const uint8_t *data)
 {
-    bool isPressed = false;
-    uint8_t current;
-    uint8_t changed;
+    bool isPressed;
+    uint32_t current;
+    uint32_t changed;
 
     if(dlc != 4) {
         printf("Ccu: dlc has not the expected value of 4, but %d instead\n", dlc);
         return false;
     }
 
-    /*printf("Ccu: Processing data...\n");*/
+    /* Compile CCU commands mask */
+	current  = data[0];
+	current |= (data[1] & CcuSelect);
+	current |= (data[2] << 8);
+    changed  = ccu->lastCmdsMask ^ current;
+    ccu->lastCmdsMask = current;
 
-    /* CCU process commands at once */
-    if(ccu->ccuProcessMultipleCommands) {
-        uint32_t cmdsMask =
-                  ccuProcessorProcessMask(data[2], CcuUp,        DirectionUp)
-                | ccuProcessorProcessMask(data[2], CcuDown,      DirectionDown)
-                | ccuProcessorProcessMask(data[2], CcuLeft,      DirectionLeft)
-                | ccuProcessorProcessMask(data[2], CcuRight,     DirectionRight)
-                | ccuProcessorProcessMask(data[2], CcuUpLeft,    DirectionUpLeft)
-                | ccuProcessorProcessMask(data[2], CcuUpRight,   DirectionUpRight)
-                | ccuProcessorProcessMask(data[2], CcuDownLeft,  DirectionDownLeft)
-                | ccuProcessorProcessMask(data[2], CcuDownRight, DirectionDownRight)
-                | ccuProcessorProcessMask(data[1], CcuSelect,    DirectionPush)
-                | ccuProcessorProcessMask(data[0], CcuBack,      ButtonBack)
-                | ccuProcessorProcessMask(data[0], CcuSeat,      ButtonSeat)
-                | ccuProcessorProcessMask(data[0], CcuClear,     ButtonClear)
-                | ccuProcessorProcessMask(data[0], CcuFavorite,  ButtonStar);
+    /*printf("Ccu: command mask is: %04x\n", current);*/
 
-        /*printf("Ccu: Button mask is: %04x\n", cmdsMask);*/
-        if (cmdsMask != ccu->lastCmdsMask || ccu->processWhilePressed) {
-            ccu->ccuProcessMultipleCommands(ccu->handle, cmdsMask);
-            ccu->lastCmdsMask = cmdsMask;
-        }
-    }
-
-    /* CCU process every command */
-    if(!ccu->ccuProcessCommand)
+    if (!changed && !ccu->processWhilePressed)
         return true;
 
-    /* CCU Buttons*/
-    current = data[0];
-    /*printf("Ccu: Button data is: %02x\n", data[0]);*/
-    if (current != ccu->lastButtons || ccu->processWhilePressed) {
-        changed = ccu->lastButtons ^ current;
-        ccuProcessorProcessBinary(CcuBack,      ButtonBack);
-        ccuProcessorProcessBinary(CcuSeat,      ButtonSeat);
-        ccuProcessorProcessBinary(CcuClear,     ButtonClear);
-        ccuProcessorProcessBinary(CcuFavorite,  ButtonStar);
-        ccu->lastButtons = current;
-    }
+    /* Process commands at once */
+    if(ccu->ccuProcessAtOnces)
+        ccu->ccuProcessAtOnces(ccu->handle, current, 0);
 
-    /* CCU Pushs*/
-    current = data[1];
-    /*printf("Ccu: Select data is: %02x\n", data[1]);*/
-    if (current != ccu->lastPushs || ccu->processWhilePressed) {
-        changed = ccu->lastPushs ^ current;
-        ccuProcessorProcessBinary(CcuSelect,    DirectionPush);
-        ccu->lastPushs = current;
-    }
-
-    /* CCU Directions*/
-    current = data[2];
-    /*printf("Ccu: Direction data is: %02x\n", data[2]);*/
-    if (current != ccu->lastDirections || ccu->processWhilePressed) {
-        changed = ccu->lastDirections ^ current;
-        ccuProcessorProcessBinary(CcuUp,        DirectionUp);
-        ccuProcessorProcessBinary(CcuDown,      DirectionDown);
-        ccuProcessorProcessBinary(CcuLeft,      DirectionLeft);
-        ccuProcessorProcessBinary(CcuRight,     DirectionRight);
-        ccuProcessorProcessBinary(CcuUpLeft,    DirectionUpLeft);
-        ccuProcessorProcessBinary(CcuUpRight,   DirectionUpRight);
-        ccuProcessorProcessBinary(CcuDownLeft,  DirectionDownLeft);
-        ccuProcessorProcessBinary(CcuDownRight, DirectionDownRight);
-        ccu->lastDirections = current;
+    /* Process every command */
+    if(ccu->ccuProcessCommand) {
+        ccuProcessorProcessBinary(CcuBack);
+        ccuProcessorProcessBinary(CcuSeat);
+        ccuProcessorProcessBinary(CcuClear);
+        ccuProcessorProcessBinary(CcuFavorite);
+        ccuProcessorProcessBinary(CcuSelect);
+        ccuProcessorProcessBinary(CcuUp);
+        ccuProcessorProcessBinary(CcuDown);
+        ccuProcessorProcessBinary(CcuLeft);
+        ccuProcessorProcessBinary(CcuRight);
+        ccuProcessorProcessBinary(CcuUpLeft);
+        ccuProcessorProcessBinary(CcuUpRight);
+        ccuProcessorProcessBinary(CcuDownLeft);
+        ccuProcessorProcessBinary(CcuDownRight);
     }
 
     return true;
@@ -219,6 +159,7 @@ static bool ccuProcessorProcessState(ccuProcessor *ccu, uint8_t dlc,
 {
     uint8_t id = data[7];
     uint16_t position = (data[5] << 8) + (unsigned char)data[6];
+    int rotate;
 
     if(dlc != 8) {
         printf("Ccu: dlc has not the expected value of 8, but %d instead\n", dlc);
@@ -238,9 +179,19 @@ static bool ccuProcessorProcessState(ccuProcessor *ccu, uint8_t dlc,
         return false;
     }
 
-    /*printf("Ccu: Processing rotation with value %d.\n", position - ccu->lastPosition);*/
-    ccu->ccuProcessRotation(ccu->handle, position - ccu->lastPosition);
+    /* Get Rotation */
+    rotate = position - ccu->lastPosition;
     ccu->lastPosition = position;
+
+    /*printf("Ccu: Process rotation: %d.\n", rotate);*/
+
+    /* Process commands at once */
+    if(ccu->ccuProcessAtOnces)
+        ccu->ccuProcessAtOnces(ccu->handle, ccu->lastCmdsMask, rotate);
+
+    /* Process rotate */
+    if(ccu->ccuProcessAtOnces)
+        ccu->ccuProcessRotation(ccu->handle, rotate);
 
     return true;
 }

@@ -190,7 +190,7 @@ static bool ccuProcessorProcessState(ccuProcessor *ccu, uint8_t dlc,
         ccu->ccuProcessAtOnces(ccu->handle, ccu->lastCmdsMask, rotate);
 
     /* Process rotate */
-    if(ccu->ccuProcessAtOnces)
+    if(ccu->ccuProcessRotation)
         ccu->ccuProcessRotation(ccu->handle, rotate);
 
     return true;

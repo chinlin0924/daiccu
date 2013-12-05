@@ -64,6 +64,8 @@ bool serialPortOpen(serialPort* port, int argc, char** argv)
 
     cfsetospeed(&configuration, B115200);
     cfsetispeed(&configuration, B115200);
+    configuration.c_cc[VMIN]  = 1;
+    configuration.c_cc[VTIME] = 5;
     configuration.c_cflag = configuration.c_cflag & ~(PARENB | PARODD);
     configuration.c_cflag = configuration.c_cflag & ~CSTOPB;
     configuration.c_cflag = configuration.c_cflag | CS8;

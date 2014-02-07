@@ -64,9 +64,15 @@ if(UNIX)
 
     set(SOURCES ${SOURCES}
         canusb/serialport_linux.c
+        socketcan/socketcan.c
+    )
+
+    set(HEADERS ${HEADERS}
+        socketcan/socketcan.h
     )
 
     # Build libraries
+    add_definitions(-DUSE_SOCKET_CAN)
     add_library(daiccu ${SOURCES})
     target_link_libraries(daiccu pthread)
 

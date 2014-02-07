@@ -453,7 +453,7 @@ bool canUsbTransmit(canDev *can, const uint32_t id, const uint8_t dlc,
     }
 
     /* Build message*/
-    sprintf(msg, "t%3x%1d", id, dlc);
+    sprintf(msg, "t%03x%1d", id, dlc);
     while (count < dlc) {
         sprintf (&msg[5 + (2 * count)], "%02x", (unsigned char) data[count]);
         count++;

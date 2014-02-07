@@ -15,7 +15,6 @@ include_directories(${daiccu_SOURCE_DIR})
 
 # Sources
 set(SOURCES
-    can.h
     canusb/canusb.c
     processor/ccu.c
 )

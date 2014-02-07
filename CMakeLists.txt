@@ -14,26 +14,31 @@ endif(DEBUG)
 include_directories(${daiccu_SOURCE_DIR})
 
 # Sources
-set(SOURCES_CPP
+set(SOURCES
     can.h
     canusb/canusb.c
+    processor/ccu.c
+)
+
+# Headers
+set(HEADERS
+    can.h
     canusb/canusb.h
     canusb/serialport.h
-    processor/ccu.c
     processor/ccu.h
 )
 
 if(WIN32)
-    set(SOURCES_CPP ${SOURCES_CPP}
+    set(SOURCES ${SOURCES}
         canusb/serialport_win.c
     )
 
     # Build libraries
-    add_library(ccu ${SOURCES_CPP})
+    add_library(daiccu ${SOURCES})
 
     # Build binaries
-    add_executable(daiccu daiccu_win.c)
-    target_link_libraries(daiccu ccu)
+    add_executable(daiccud daiccu_win.c)
+    target_link_libraries(daiccud daiccu)
 endif(WIN32)
 
 if(UNIX)
@@ -57,15 +62,22 @@ if(UNIX)
         add_definitions(-DUSE_X11)
     endif(X11_FOUND AND X11_XTest_FOUND)
 
-    set(SOURCES_CPP ${SOURCES_CPP}
+    set(SOURCES ${SOURCES}
         canusb/serialport_linux.c
     )
 
     # Build libraries
-    add_library(ccu ${SOURCES_CPP})
-    target_link_libraries(ccu pthread)
+    add_library(daiccu ${SOURCES})
+    target_link_libraries(daiccu pthread)
 
     # Build binaries
-    add_executable(daiccu daiccu_linux.c)
-    target_link_libraries(daiccu ccu pthread ${LIBS})
+    add_executable(daiccud daiccu_linux.c)
+    target_link_libraries(daiccud daiccu pthread ${LIBS})
 endif(UNIX)
+
+# Install
+INSTALL(FILES ${HEADERS} DESTINATION include/daiccu)
+INSTALL(TARGETS daiccud daiccu
+    RUNTIME DESTINATION bin
+    ARCHIVE DESTINATION lib
+)

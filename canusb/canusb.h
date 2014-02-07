@@ -26,7 +26,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "../can.h"
+#include "can.h"
 #include "serialport.h"
 
 #define BUFFER_SIZE 1024

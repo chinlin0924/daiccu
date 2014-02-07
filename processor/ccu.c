@@ -21,7 +21,7 @@
  ******************************************************************************/
 #include "ccu.h"
 
-#include "../can.h"
+#include "can.h"
 
 #include <time.h>
 #include <stdlib.h>

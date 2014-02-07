@@ -14,6 +14,12 @@ Make sure you have the following hardware components available:
 - 1 4-Pin Connector
 - 4 MQS Pins
 
+Pin assignment 4-Pin Connector:
+    1. GND (marked red)
+    2. +12V
+    3. CAN-High => D-SUB9 Pin 7
+    4. CAN-Low => D-SUB9 Pin 2
+
 Proceed as follows:
 
 Cut off 2mm of the insulation on each end of wire #1 and #2. Fix a D-Sub Crimp

@@ -66,7 +66,8 @@ if(UNIX)
     )
 
     # Build libraries
-    add_library(daiccu ${SOURCES})
+    #add_library(daiccu SHARED ${SOURCES})
+    add_library(daiccu STATIC ${SOURCES})
     target_link_libraries(daiccu pthread)
 
     # Build binaries
@@ -78,5 +79,6 @@ endif(UNIX)
 INSTALL(FILES ${HEADERS} DESTINATION include/daiccu)
 INSTALL(TARGETS daiccud daiccu
     RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
 )

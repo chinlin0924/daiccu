@@ -72,7 +72,7 @@ bool ccuProcessorProcess(ccuProcessor *ccu, uint16_t id, uint8_t dlc,
 const char* ccuCommandToString(CcuCommands cmd);
 
 bool ccuProcessorSendKeepAliveMessage(ccuProcessor *ccu, void *handle);
-bool ccuProcessorSendStateMessage(ccuProcessor* ccu, void *handle);
+bool ccuProcessorSendStateMessage(ccuProcessor *ccu, void *handle);
 
 #if(defined __cplusplus)
 }

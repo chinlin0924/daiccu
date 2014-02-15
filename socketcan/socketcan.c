@@ -45,11 +45,15 @@ canDev* socketCanGet(void)
     return can;
 }
 
-bool socketCanRun(canDev* can)
+bool socketCanRun(canDev *can)
 {
     struct can_frame frame;
     size_t bytes_read;
+#ifdef _DEBUG
+    int i = 0;
 
+	printf("Receiving data on CANSOCKET.\n");
+#endif
     /* Read a message back from the CAN bus */
     bytes_read = read(*((int*)can->dev), &frame, sizeof(frame));
 
@@ -64,6 +68,15 @@ bool socketCanRun(canDev* can)
         return false;
     }
 
+#ifdef _DEBUG
+	printf("Received bytes via CAN: id = 0x%03X ; dlc = %d ; data = 0x", frame.can_id, frame.can_dlc);
+    for (i = 0; i < frame.can_dlc; i++) {
+		printf("%02X ", frame.data[i]);
+	}
+	printf("\n");
+    printf("Received a can message\n");
+#endif
+
     /* Notify all */
     if (can->canMessageReceived)
         can->canMessageReceived(can->handle, frame.can_id, frame.can_dlc,
@@ -72,7 +85,7 @@ bool socketCanRun(canDev* can)
     return true;
 }
 
-bool socketCanOpen(canDev* can, int argc, char** argv)
+bool socketCanOpen(canDev *can, int argc, char **argv)
 {
     /* set default network*/
     char *iface = "can0";
@@ -109,11 +122,13 @@ bool socketCanOpen(canDev* can, int argc, char** argv)
                strerror(errno));
         goto error;
     }
-    can->dev = (void*) device;
+    can->dev = (void*)device;
 
     /* Update the interface state */
-    if (can->canStateChanged)
+    if (can->canStateChanged) {
         can->canStateChanged(can->handle, true);
+    }
+
     return true;
 
 error:
@@ -121,11 +136,12 @@ error:
     return false;
 }
 
-void socketCanClose(canDev* can)
+void socketCanClose(canDev *can)
 {
     /* Inform handler */
-    if (can->canStateChanged)
+    if (can->canStateChanged) {
         can->canStateChanged(can->handle, false);
+    }
 
     /* Close socket */
     if (can->dev) {
@@ -136,7 +152,7 @@ void socketCanClose(canDev* can)
 }
 
 
-bool socketCanTransmit(canDev* can, const uint32_t id, const uint8_t dlc,
+bool socketCanTransmit(canDev *can, const uint32_t id, const uint8_t dlc,
                        const char *data)
 {
     /* Prepare frame */
@@ -148,6 +164,14 @@ bool socketCanTransmit(canDev* can, const uint32_t id, const uint8_t dlc,
     for (i = 0; i < dlc; i++) {
         frame.data[i] = data[i];
     }
+
+#ifdef _DEBUG
+	printf("Sending bytes via CAN: id = 0x%03X ; dlc = %d ; data = 0x", id, dlc);
+    for (i = 0; i < dlc; i++) {
+		printf("%02X ", data[i]);
+	}
+	printf("\n");
+#endif
 
     /* Send frame */
     len = sizeof(frame);

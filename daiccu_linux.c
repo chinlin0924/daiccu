@@ -87,14 +87,14 @@ static void processCcuRotation(void *handle, int rotate)
     Display *display = XOpenDisplay(NULL);
 
     /* Left or right rotation? */
-    if(rotate < 0) {
+    if (rotate < 0) {
         keycode = XKeysymToKeycode(display, XK_Left);
         rotate = -rotate;
     } else {
         keycode = XKeysymToKeycode(display, XK_Right);
     }
 
-    for(i = 0; i < rotate ; i++) {
+    for (i = 0; i < rotate ; i++) {
         XTestFakeKeyEvent(display, keycode, True, 0);
         XTestFakeKeyEvent(display, keycode, False, 0);
         XFlush(display);
@@ -153,7 +153,8 @@ static void* ccuRun(void* handle)
     return NULL;
 }
 
-static void readInput() {
+static void readInput()
+{
     bool waiting = true;
     char inputChar = 0;
     while (waiting) {
@@ -196,7 +197,7 @@ int main(int argc, char **argv)
     }
 
     pthread_t canRunThread;
-    pthread_create(&canRunThread, NULL, ccuRun, (void*) &canCcu);
+    pthread_create(&canRunThread, NULL, ccuRun, (void*)&canCcu);
 
     readInput();
 

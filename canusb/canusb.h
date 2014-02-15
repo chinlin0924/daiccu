@@ -38,14 +38,14 @@ extern "C"
 
 typedef struct {
     int                   status;
-    serialPort*           port;
+    serialPort            *port;
     unsigned int          rxBufLen;
     char                  rxBuf[BUFFER_SIZE];
 } canUsb;
 
 canDev* canUsbGet(void);
 
-bool canUsbOpen(canDev *can, int argc, char** argv);
+bool canUsbOpen(canDev *can, int argc, char **argv);
 void canUsbClose(canDev *can);
 bool canUsbRun(canDev *can);
 

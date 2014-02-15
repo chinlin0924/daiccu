@@ -45,14 +45,14 @@ enum {
 } CanStatus;
 
 #ifdef _DEBUG
-static void replaceCharInString(char* string, const char replacementChar, 
+static void replaceCharInString(char *string, const char replacementChar,
                                 const char charToBeReplaced) 
 {
-    char* pointerToCharOccurence;
-    pointerToCharOccurence = strchr(string,(int) charToBeReplaced);
-    while(pointerToCharOccurence != NULL) {
+    char *pointerToCharOccurence;
+    pointerToCharOccurence = strchr(string, (int)charToBeReplaced);
+    while (pointerToCharOccurence != NULL) {
         *pointerToCharOccurence = replacementChar;
-        pointerToCharOccurence = strchr(string,(int) charToBeReplaced);
+        pointerToCharOccurence = strchr(string, (int)charToBeReplaced);
     }
 }
 #endif
@@ -82,8 +82,8 @@ static bool canUsbWrite(canDev *can, const char *msg)
 
 #ifdef _DEBUG
     char printableMsg[1024];
-    strcpy(printableMsg,msg);
-    replaceCharInString(printableMsg,';','\r');
+    strcpy(printableMsg, msg);
+    replaceCharInString(printableMsg, ';', '\r');
     printf("CanUsb: Write msg: %s\n", printableMsg);
 #endif
 
@@ -94,8 +94,9 @@ static bool canUsbWrite(canDev *can, const char *msg)
             return false;
         }
         count += tx;
-        if (count == len)
+        if (count == len) {
             break;
+        }
     }
 
     return true;
@@ -138,17 +139,17 @@ static int canUsbProcessData(canDev *can, char *msg)
 #ifdef _DEBUG
     char printableMsg[1024];
     strcpy(printableMsg,msg);
-    replaceCharInString(printableMsg,';','\r');
+    replaceCharInString(printableMsg, ';', '\r');
     printf("CanUsb: Process Msg: %s\n", printableMsg);
 #endif
 
-    switch(msg[0]) {
+    switch (msg[0]) {
     case '\a': {
         /* Check for BELL*/
         /*printf("CanUsb: Error received\n");*/
 
         /* Change status*/
-        switch(dev->status) {
+        switch (dev->status) {
         case Configuring: {
             dev->status = Ready;
             printf("CanUsb: Configure CAN failed! Try again...\n");
@@ -197,15 +198,17 @@ static int canUsbProcessData(canDev *can, char *msg)
         case Opening: {
             dev->status = Open;
             printf("CanUsb: Open CAN succeed.\n");
-            if (can->canStateChanged)
+            if (can->canStateChanged) {
                 can->canStateChanged(can->handle, true);
+            }
             break;
         }
         case Closing: {
             dev->status = Configured;
             printf("CanUsb: Close CAN succeed.\n");
-            if (can->canStateChanged)
+            if (can->canStateChanged) {
                 can->canStateChanged(can->handle, false);
+            }
             break;
         }
         default:
@@ -229,12 +232,13 @@ static int canUsbProcessData(canDev *can, char *msg)
     }
 
     /* Parse message*/
-    switch(msg[0]) {
+    switch (msg[0]) {
     case 't': {
         char *ptr = msg + 1;
 
-        if (dev->status < Open)
+        if (dev->status < Open) {
             break;
+        }
 
         /* Parse CAN message*/
         if ((end - msg) < 5) {
@@ -285,8 +289,9 @@ static int canUsbProcessData(canDev *can, char *msg)
             }
         }
 
-        if (can->canMessageReceived)
+        if (can->canMessageReceived) {
             can->canMessageReceived(can->handle, id, dlc, bytes);
+        }
 
         free(bytes);
         break;
@@ -321,7 +326,7 @@ static void canUsbReceivedData(void *handle, unsigned int len,
     unsigned int pos = 0;
     int bytesProcessed;
 
-    if(dev->rxBufLen + len > BUFFER_SIZE - 1) {
+    if (dev->rxBufLen + len > BUFFER_SIZE - 1) {
         printf("CanUsb: Buffer is full! Discard message...\n");
         dev->rxBufLen = 0;
         return;
@@ -357,12 +362,12 @@ static void canUsbStateChanged(void *handle, bool active)
     if (active) {
         dev->status = Ready;
         /* Update the interface state.*/
-        printf("CanUsb: Serial port was turned on\n");
+        printf("CanUsb: Serial port was turned on.\n");
         canUsbWrite(can, "\r\r\rC\rV\r");
     } else {
         dev->status = NotReady;
         /* Update the interface state.*/
-        printf("CanUsb: Serial port was turned off\n");
+        printf("CanUsb: Serial port was turned off.\n");
     }
 }
 
@@ -385,7 +390,7 @@ canDev* canUsbGet()
     return can;
 }
 
-bool canUsbOpen(canDev *can, int argc, char** argv)
+bool canUsbOpen(canDev *can, int argc, char **argv)
 {
     canUsb *dev = can->dev;
 
@@ -422,8 +427,9 @@ void canUsbClose(canDev *can)
 
     if (dev->port) {
         /* Close CAN*/
-        if (dev->status == Open)
+        if (dev->status == Open) {
             canUsbWrite(can, "C\r");
+        }
 
         /* Close serial port*/
         serialPortClose(dev->port);
@@ -431,8 +437,9 @@ void canUsbClose(canDev *can)
     }
     dev->status = NotReady;
 
-    if (can->canStateChanged)
+    if (can->canStateChanged) {
         can->canStateChanged(can->handle, false);
+    }
 
     free(dev);
     free(can);
@@ -455,7 +462,7 @@ bool canUsbTransmit(canDev *can, const uint32_t id, const uint8_t dlc,
     /* Build message*/
     sprintf(msg, "t%03x%1d", id, dlc);
     while (count < dlc) {
-        sprintf (&msg[5 + (2 * count)], "%02x", (unsigned char) data[count]);
+        sprintf(&msg[5 + (2 * count)], "%02x", (unsigned char)data[count]);
         count++;
     }
     msg[len - 1] = '\r';

@@ -37,14 +37,15 @@ serialPort* serialPortGet()
     return port;
 }
 
-bool serialPortOpen(serialPort* port, int argc, char** argv)
+bool serialPortOpen(serialPort *port, int argc, char **argv)
 {
     /* set default port*/
     char *portName = "/dev/ttyUSB0";
-    int* device = 0;
+    int *device = 0;
 
-    if (argc > 1)
+    if (argc > 1) {
         portName = argv[1];
+    }
     printf("SerialPort: Open serialport: %s\n", portName);
 
     /* open serialport*/
@@ -71,15 +72,16 @@ bool serialPortOpen(serialPort* port, int argc, char** argv)
     configuration.c_cflag = configuration.c_cflag | CS8;
     configuration.c_iflag = configuration.c_iflag & ~(IXON | IXOFF | IXANY);
 
-    if(tcsetattr(*device, TCSANOW, &configuration) != 0) {
+    if (tcsetattr(*device, TCSANOW, &configuration) != 0) {
         printf("SerialPort: Could not configure serial port!\n");
         goto error;
     }
-    port->serial = (void*) device;
+    port->serial = (void*)device;
 
     /* inform handler*/
-    if (port->serialPortStateChanged)
+    if (port->serialPortStateChanged) {
         port->serialPortStateChanged(port->handle, true);
+    }
 
     return true;
 
@@ -88,15 +90,17 @@ error:
     return false;
 }
 
-void serialPortClose(serialPort* port)
+void serialPortClose(serialPort *port)
 {
     /* Inform handler*/
-    if (port->serialPortStateChanged)
+    if (port->serialPortStateChanged) {
         port->serialPortStateChanged(port->handle, false);
+    }
 
     /* Close port*/
-    if (port->serial)
+    if (port->serial) {
         close(*(int*)(port->serial));
+    }
 
     /* Free memory*/
     free(port->serial);
@@ -104,7 +108,7 @@ void serialPortClose(serialPort* port)
     printf("SerialPort: Serial port closed.\n");
 }
 
-bool serialPortRun(serialPort* port)
+bool serialPortRun(serialPort *port)
 {
     uint8_t data[512];
     long readBytes = 0;
@@ -117,23 +121,25 @@ bool serialPortRun(serialPort* port)
     }
 
     /* Bytes read???*/
-    if (!readBytes)
+    if (!readBytes) {
         return true;
+    }
 
     /* Inform handler*/
-    if (port->serialPortReceived)
+    if (port->serialPortReceived) {
         port->serialPortReceived(port->handle, readBytes, data);
+    }
 
     return true;
 }
 
-int serialPortTransmit(serialPort* port, const char* data, const int len)
+int serialPortTransmit(serialPort *port, const char *data, const int len)
 {
     int count = 0;
     int bytesWritten = 0;
-    while(count < len) {
+    while (count < len) {
         bytesWritten = write(*(int*)(port->serial), data, len);
-        if(bytesWritten < 0) {
+        if (bytesWritten < 0) {
             printf("SerialPort: Send message failed!\n");
             return -1;
         }

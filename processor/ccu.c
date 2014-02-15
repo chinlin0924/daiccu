@@ -75,13 +75,13 @@ ccuProcessor* ccuProcessorGet()
     return ccu;
 }
 
-bool ccuProcessorSendKeepAliveMessage(ccuProcessor *ccu, void* handle)
+bool ccuProcessorSendKeepAliveMessage(ccuProcessor *ccu, void *handle)
 {
     (void)ccu;
     return canTransmit(handle, 0x43f, 8, nmKeepAliveData);
 }
 
-bool ccuProcessorSendStateMessage(ccuProcessor* ccu, void* handle) 
+bool ccuProcessorSendStateMessage(ccuProcessor *ccu, void *handle)
 {
     char ccuStateMessageData[8];
 
@@ -89,6 +89,8 @@ bool ccuProcessorSendStateMessage(ccuProcessor* ccu, void* handle)
     /* Detents_Stat - Number of detents state (0 - 9999, SNA = 0xFFFF)*/
     ccuStateMessageData[1] = CCU_ROTATE_MAX >> 8;   /* MAX*/
     ccuStateMessageData[2] = CCU_ROTATE_MAX & 0xFF; /* MAX*/
+
+
     /* StPosn_Stat - Start position at activation state (0 - 9999, SNA = 0xFFFF)*/
     ccuStateMessageData[3] = ccu->lastPosition >> 8;
     ccuStateMessageData[4] = ccu->lastPosition & 0xFF;
@@ -103,8 +105,9 @@ bool ccuProcessorSendStateMessage(ccuProcessor* ccu, void* handle)
 
 #define ccuProcessorProcessBinary(cmd) \
     isPressed = (current & cmd) ? true : false; \
-    if ((ccu->processWhilePressed && isPressed) || (changed & cmd)) \
-        ccu->ccuProcessCommand(ccu->handle, cmd, isPressed);
+    if ((ccu->processWhilePressed && isPressed) || (changed & cmd)) { \
+        ccu->ccuProcessCommand(ccu->handle, cmd, isPressed); \
+    }
 
 static bool ccuProcessorProcessActuation(ccuProcessor *ccu, uint8_t dlc,
                                          const uint8_t *data)
@@ -113,15 +116,15 @@ static bool ccuProcessorProcessActuation(ccuProcessor *ccu, uint8_t dlc,
     uint32_t current;
     uint32_t changed;
 
-    if(dlc != 4) {
+    if (dlc != 4) {
         printf("Ccu: dlc has not the expected value of 4, but %d instead\n", dlc);
         return false;
     }
 
     /* Compile CCU commands mask */
-	current  = data[0];
-	current |= (data[1] & CcuSelect);
-	current |= (data[2] << 8);
+    current  = data[0];
+    current |= (data[1] & CcuSelect);
+    current |= (data[2] << 8);
     changed  = ccu->lastCmdsMask ^ current;
     ccu->lastCmdsMask = current;
 
@@ -131,11 +134,11 @@ static bool ccuProcessorProcessActuation(ccuProcessor *ccu, uint8_t dlc,
         return true;
 
     /* Process commands at once */
-    if(ccu->ccuProcessAtOnces)
+    if (ccu->ccuProcessAtOnces)
         ccu->ccuProcessAtOnces(ccu->handle, current, 0);
 
     /* Process every command */
-    if(ccu->ccuProcessCommand) {
+    if (ccu->ccuProcessCommand) {
         ccuProcessorProcessBinary(CcuBack);
         ccuProcessorProcessBinary(CcuSeat);
         ccuProcessorProcessBinary(CcuClear);
@@ -161,7 +164,7 @@ static bool ccuProcessorProcessState(ccuProcessor *ccu, uint8_t dlc,
     uint16_t position = (data[5] << 8) + (unsigned char)data[6];
     int rotate;
 
-    if(dlc != 8) {
+    if (dlc != 8) {
         printf("Ccu: dlc has not the expected value of 8, but %d instead\n", dlc);
         return false;
     }
@@ -171,8 +174,9 @@ static bool ccuProcessorProcessState(ccuProcessor *ccu, uint8_t dlc,
         return false;
     }
 
-    if (position == ccu->lastPosition)
+    if (position == ccu->lastPosition) {
         return true;
+    }
 
     if (position == 0xFFFF) {
         printf("Ccu: Position signal not available!\n");
@@ -186,12 +190,14 @@ static bool ccuProcessorProcessState(ccuProcessor *ccu, uint8_t dlc,
     /*printf("Ccu: Process rotation: %d.\n", rotate);*/
 
     /* Process commands at once */
-    if(ccu->ccuProcessAtOnces)
+    if (ccu->ccuProcessAtOnces) {
         ccu->ccuProcessAtOnces(ccu->handle, ccu->lastCmdsMask, rotate);
+    }
 
     /* Process rotate */
-    if(ccu->ccuProcessRotation)
+    if (ccu->ccuProcessRotation) {
         ccu->ccuProcessRotation(ccu->handle, rotate);
+    }
 
     return true;
 }
@@ -199,25 +205,28 @@ static bool ccuProcessorProcessState(ccuProcessor *ccu, uint8_t dlc,
 bool ccuProcessorProcess(ccuProcessor *ccu, uint16_t id, uint8_t dlc,
                          const uint8_t *data)
 {
-    bool res;
-    switch(id) {
+    bool res = false;
+
+    switch (id) {
     case 0xfd: {
         res = ccuProcessorProcessActuation(ccu, dlc, data);
         break;
     }
-    case 0xfb: {
+    case 0xfb:
+    {
         res = ccuProcessorProcessState(ccu, dlc, data);
-        if(!ccuProcessorSendStateMessage(ccu, ccu->handle)) {
+        if (!ccuProcessorSendStateMessage(ccu, ccu->handle)) {
             printf("Ccu: Sent state message failed.\n");
         }
         break;
     }
-    default: res = false;
+    default:
+        res = false;
     }
 
     long currentTime = time(NULL);
-    if(currentTime - ccu->lastKeepAlive >= 1) {
-        if(!ccuProcessorSendKeepAliveMessage(ccu, ccu->handle)) {
+    if (currentTime - ccu->lastKeepAlive >= 1) {
+        if (!ccuProcessorSendKeepAliveMessage(ccu, ccu->handle)) {
             printf("Ccu: Sent keep-alive message failed.\n");
         } else {
             ccu->lastKeepAlive = currentTime;

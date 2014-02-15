@@ -63,6 +63,11 @@ if(UNIX)
 
     set(SOURCES ${SOURCES}
         canusb/serialport_linux.c
+        socketcan/socketcan.c
+    )
+
+    set(HEADERS ${HEADERS}
+        socketcan/socketcan.h
     )
 
     # Build libraries
@@ -73,6 +78,11 @@ if(UNIX)
     # Build binaries
     add_executable(daiccud daiccu_linux.c)
     target_link_libraries(daiccud daiccu pthread ${LIBS})
+
+    add_executable(daiccusd daiccu_linux.c)
+    set_target_properties (daiccusd PROPERTIES COMPILE_DEFINITIONS "USE_SOCKETCAN")
+    target_link_libraries(daiccusd daiccu pthread ${LIBS})
+
 endif(UNIX)
 
 # Install

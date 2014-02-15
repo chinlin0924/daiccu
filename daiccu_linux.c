@@ -20,7 +20,21 @@
  **
  ******************************************************************************/
 #include "processor/ccu.h"
+#ifdef USE_SOCKETCAN
+#include "socketcan/socketcan.h"
+#define CAN_PREFIX_ socketCan
+#else
 #include "canusb/canusb.h"
+#define CAN_PREFIX_ canUsb
+#endif
+
+#define CONCAT2(a,b) a##b
+#define CONCAT2E(a,b) CONCAT2(a,b)
+#define CAN_PREFIX_Get CONCAT2E(CAN_PREFIX_,Get)
+#define CAN_PREFIX_Open CONCAT2E(CAN_PREFIX_,Open)
+#define CAN_PREFIX_Run CONCAT2E(CAN_PREFIX_,Run)
+#define CAN_PREFIX_Close CONCAT2E(CAN_PREFIX_,Close)
+#define CAN_PREFIX_Transmit CONCAT2E(CAN_PREFIX_,Transmit)
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -137,7 +151,7 @@ bool canTransmit(void *handle, const uint32_t id, const uint8_t dlc,
 {
     daiCcu *canCcu = handle;
     /*printf("main: Transmitt CAN message: %d (%#x)\n", id, id);*/
-    canUsbTransmit(canCcu->can, id, dlc, data);
+    CAN_PREFIX_Transmit(canCcu->can, id, dlc, data);
 
     return true;
 }
@@ -146,7 +160,7 @@ static void* ccuRun(void* handle)
 {
     daiCcu *canCcu = handle;
     while (1) {
-        if (!canUsbRun(canCcu->can))
+        if (!CAN_PREFIX_Run(canCcu->can))
             break;
     }
     /* need to return something because pthread library requires a thread function to*/
@@ -182,7 +196,7 @@ int main(int argc, char **argv)
     ccu->ccuProcessAtOnces = processCcuAtOnces;
 
     /* Init CAN */
-    can = canUsbGet();
+    can = CAN_PREFIX_Get();
     can->handle = &canCcu;
     can->canStateChanged = stateChanged;
     can->canMessageReceived = messageReceived;
@@ -191,7 +205,7 @@ int main(int argc, char **argv)
     canCcu.can = can;
     canCcu.ccu = ccu;
 
-    if (!canUsbOpen(canCcu.can, argc, argv)) {
+    if (!CAN_PREFIX_Open(canCcu.can, argc, argv)) {
         printf("main: Open CAN failed!\n");
         return -1;
     }
@@ -201,7 +215,7 @@ int main(int argc, char **argv)
 
     readInput();
 
-    canUsbClose(canCcu.can);
+    CAN_PREFIX_Close(canCcu.can);
 
     return 0;
 }

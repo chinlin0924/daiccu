@@ -20,7 +20,7 @@
  **
  ******************************************************************************/
 #include "processor/ccu.h"
-#ifdef USE_SOCKET_CAN
+#ifdef USE_SOCKETCAN
 #include "socketcan/socketcan.h"
 #define CAN_PREFIX_ socketCan
 #else

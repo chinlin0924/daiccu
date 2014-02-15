@@ -72,13 +72,17 @@ if(UNIX)
     )
 
     # Build libraries
-    add_definitions(-DUSE_SOCKET_CAN)
     add_library(daiccu ${SOURCES})
     target_link_libraries(daiccu pthread)
 
     # Build binaries
     add_executable(daiccud daiccu_linux.c)
     target_link_libraries(daiccud daiccu pthread ${LIBS})
+
+    add_executable(daiccusd daiccu_linux.c)
+    set_target_properties (daiccusd PROPERTIES COMPILE_DEFINITIONS "USE_SOCKETCAN")
+    target_link_libraries(daiccusd daiccu pthread ${LIBS})
+
 endif(UNIX)
 
 # Install

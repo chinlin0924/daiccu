@@ -82,6 +82,7 @@ if(UNIX)
     add_executable(daiccusd daiccu_linux.c)
     set_target_properties (daiccusd PROPERTIES COMPILE_DEFINITIONS "USE_SOCKETCAN")
     target_link_libraries(daiccusd daiccu pthread ${LIBS})
+    INSTALL(TARGETS daiccusd RUNTIME DESTINATION bin)
 
 endif(UNIX)
 

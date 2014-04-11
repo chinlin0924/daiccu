@@ -17,6 +17,7 @@ include_directories(${daiccu_SOURCE_DIR})
 set(SOURCES
     canusb/canusb.c
     processor/ccu.c
+    processor/networkmanager.c
 )
 
 # Headers
@@ -25,41 +26,31 @@ set(HEADERS
     canusb/canusb.h
     canusb/serialport.h
     processor/ccu.h
+    processor/networkmanager.h
 )
 
 if(WIN32)
     set(SOURCES ${SOURCES}
         canusb/serialport_win.c
     )
-
-    # Build libraries
-    add_library(daiccu ${SOURCES})
-
-    # Build binaries
-    add_executable(daiccud daiccu_win.c)
-    target_link_libraries(daiccud daiccu)
 endif(WIN32)
 
 if(UNIX)
     find_package(X11)
-    if(X11_FOUND)
+    find_library(X11_XTest_LIB Xtst ${X11_LIB_SEARCH_PATH})
+    if(X11_FOUND AND X11_XTest_FOUND)
         set(LIBS ${LIBS} ${X11_LIBRARIES})
         include_directories(${X11_INCLUDE_DIR})
-    else()
-        message("Failed to find X11")
-    endif(X11_FOUND)
 
-    find_library(X11_XTest_LIB Xtst ${X11_LIB_SEARCH_PATH})
-    if(X11_XTest_FOUND)
         set(LIBS ${LIBS} ${X11_XTest_LIB})
         include_directories(${X11_XTest_INCLUDE_DIR})
-    else()
-        message("Failed to find XTest library")
-    endif(X11_XTest_FOUND)
 
-    if(X11_FOUND AND X11_XTest_FOUND)
         add_definitions(-DUSE_X11)
+    else()
+        message(STATUS "Failed to find X11 libraries. X11 key event injection will be disabled.")
     endif(X11_FOUND AND X11_XTest_FOUND)
+
+    set(LIBS ${LIBS} pthread)
 
     set(SOURCES ${SOURCES}
         canusb/serialport_linux.c
@@ -69,21 +60,22 @@ if(UNIX)
     set(HEADERS ${HEADERS}
         socketcan/socketcan.h
     )
+endif(UNIX)
 
-    # Build libraries
-    #add_library(daiccu SHARED ${SOURCES})
-    add_library(daiccu STATIC ${SOURCES})
-    target_link_libraries(daiccu pthread)
+# Build libraries
+#add_library(daiccu SHARED ${SOURCES})
+add_library(daiccu STATIC ${SOURCES})
+set_target_properties(daiccu PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
-    # Build binaries
-    add_executable(daiccud daiccu_linux.c)
-    target_link_libraries(daiccud daiccu pthread ${LIBS})
+# Build binaries
+add_executable(daiccud daiccu.c)
+target_link_libraries(daiccud daiccu ${LIBS})
 
-    add_executable(daiccusd daiccu_linux.c)
+if(UNIX)
+    add_executable(daiccusd daiccu.c)
     set_target_properties (daiccusd PROPERTIES COMPILE_DEFINITIONS "USE_SOCKETCAN")
-    target_link_libraries(daiccusd daiccu pthread ${LIBS})
+    target_link_libraries(daiccusd daiccu ${LIBS})
     INSTALL(TARGETS daiccusd RUNTIME DESTINATION bin)
-
 endif(UNIX)
 
 # Install

@@ -34,13 +34,27 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-canDev* socketCanGet(void)
+canDev* socketCanGet(int argc, char** argv)
 {
+    int i;
     canDev *can             = malloc(sizeof(canDev));
-    can->dev                = 0;
+    can->dev                = "can0";
     can->handle             = 0;
     can->canMessageReceived = 0;
     can->canStateChanged    = 0;
+
+    /* Parse arguments */
+    for (i = 1; i < argc; i++) {
+        if (!strcmp(argv[i], "--socketcan")) {
+            i++;
+            if (i < argc) {
+                can->dev = argv[i];
+            } else {
+                printf("SocketCan: Usage %s --socketcan <iface>\n", argv[0]);
+                return 0;
+            }
+        }
+    }
 
     return can;
 }
@@ -85,15 +99,12 @@ bool socketCanRun(canDev *can)
     return true;
 }
 
-bool socketCanOpen(canDev *can, int argc, char **argv)
+bool socketCanOpen(canDev *can)
 {
     /* set default network*/
-    char *iface = "can0";
     int *device = 0;
 
-    if (argc > 1)
-        iface = argv[1];
-    printf("SocketCan: Open CAN interface: %s\n", iface);
+    printf("SocketCan: Open CAN interface: %s\n", (char*)can->dev);
 
     /* Create the socket  */
     device = malloc(sizeof(int));
@@ -106,10 +117,10 @@ bool socketCanOpen(canDev *can, int argc, char **argv)
 
     /* Locate the CAN interface */
     struct ifreq ifr;
-    strcpy(ifr.ifr_name, iface);
+    strcpy(ifr.ifr_name, can->dev);
     if (ioctl(*device, SIOCGIFINDEX, &ifr) < 0) {
-        printf("SocketCan: Unable to locate CAN interface %s: %s!\n", iface,
-               strerror(errno));
+        printf("SocketCan: Unable to locate CAN interface %s: %s!\n",
+               (char*)can->dev, strerror(errno));
         goto error;
     }
 

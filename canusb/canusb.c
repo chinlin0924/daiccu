@@ -371,8 +371,9 @@ static void canUsbStateChanged(void *handle, bool active)
     }
 }
 
-canDev* canUsbGet()
+canDev* canUsbGet(int argc, char **argv)
 {
+    int i;
     canDev *can = malloc(sizeof(canDev));
     canUsb *dev = malloc(sizeof(canUsb));
 
@@ -380,6 +381,21 @@ canDev* canUsbGet()
     dev->status   = NotReady;
     dev->port     = 0;
     dev->rxBufLen = 0;
+    dev->dev      = 0;
+
+    /* Parse arguments */
+    for (i = 1; i < argc; i++) {
+        if (!strcmp(argv[i], "--canusb")) {
+            i++;
+            if (i < argc) {
+                dev->dev = argv[i];
+                printf("CanUsb: Use device: %s\n", dev->dev);
+            } else {
+                printf("CanUsb: Usage %s --canusb <device>\n", argv[0]);
+                return 0;
+            }
+        }
+    }
 
     can->dev                = dev;
     can->baudRate           = 125;
@@ -390,7 +406,7 @@ canDev* canUsbGet()
     return can;
 }
 
-bool canUsbOpen(canDev *can, int argc, char **argv)
+bool canUsbOpen(canDev *can)
 {
     canUsb *dev = can->dev;
 
@@ -409,7 +425,7 @@ bool canUsbOpen(canDev *can, int argc, char **argv)
     dev->port->serialPortStateChanged = canUsbStateChanged;
 
     /* Open serial port*/
-    if (serialPortOpen(dev->port, argc, argv)) {
+    if (serialPortOpen(dev->port, dev->dev)) {
         printf("CanUsb: Listening for data\n");
         return true;
     } else {

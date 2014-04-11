@@ -37,15 +37,12 @@ serialPort* serialPortGet()
     return port;
 }
 
-bool serialPortOpen(serialPort *port, int argc, char **argv)
+bool serialPortOpen(serialPort *port, char *dev)
 {
     /* set default port*/
-    char *portName = "/dev/ttyUSB0";
+    char *portName = dev ? dev : "/dev/ttyUSB0";
     int *device = 0;
 
-    if (argc > 1) {
-        portName = argv[1];
-    }
     printf("SerialPort: Open serialport: %s\n", portName);
 
     /* open serialport*/

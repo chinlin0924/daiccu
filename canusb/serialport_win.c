@@ -36,14 +36,12 @@ serialPort* serialPortGet()
     return port;
 }
 
-bool serialPortOpen(serialPort* port, int argc, char** argv)
+bool serialPortOpen(serialPort* port, char *dev)
 {
-    char *portName = "COM6";
+    char *portName = dev ? dev : "COM1";
     DCB settings = {0};
     COMMTIMEOUTS timeouts = {0};
 
-    if (argc > 1)
-        portName = argv[1];
     printf("SerialPort: Open serialport: %s\n", portName);
 
     port->serial = CreateFileA(portName, GENERIC_READ | GENERIC_WRITE, 0, NULL,

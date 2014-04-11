@@ -43,7 +43,7 @@ typedef struct {
 
 serialPort* serialPortGet(void);
 
-bool serialPortOpen(serialPort* port, int argc, char** argv);
+bool serialPortOpen(serialPort* port, char* dev);
 void serialPortClose(serialPort* port);
 bool serialPortRun(serialPort* port);
 

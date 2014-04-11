@@ -41,11 +41,12 @@ typedef struct {
     serialPort            *port;
     unsigned int          rxBufLen;
     char                  rxBuf[BUFFER_SIZE];
+    char                  *dev;
 } canUsb;
 
-canDev* canUsbGet(void);
+canDev* canUsbGet(int argc, char **argv);
 
-bool canUsbOpen(canDev *can, int argc, char **argv);
+bool canUsbOpen(canDev *can);
 void canUsbClose(canDev *can);
 bool canUsbRun(canDev *can);
 

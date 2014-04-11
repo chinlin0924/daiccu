@@ -33,9 +33,9 @@ extern "C"
 {
 #endif
 
-canDev* socketCanGet(void);
+canDev* socketCanGet(int argc, char** argv);
 
-bool socketCanOpen(canDev *can, int argc, char** argv);
+bool socketCanOpen(canDev *can);
 void socketCanClose(canDev *can);
 bool socketCanRun(canDev *can);
 

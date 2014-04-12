@@ -76,7 +76,7 @@ static void processCcuCommand(void *handle, CcuCommands cmd, int value)
 
     if (cmd == CcuRotate) return processCcuRotation(handle, value);
 
-#ifdef _DEBUG
+#ifdef DAICCUD_DEBUG
     printf("main: Process CCU command: 0x%08x (%s) %s\n", cmd,
            ccuCommandToString(cmd), value ? "pressed" : "released");
 #endif
@@ -184,7 +184,7 @@ static void processCcuRotation(void *handle, int rotate)
 {
     (void) handle;
 
-#ifdef _DEBUG
+#ifdef DAICCUD_DEBUG
     printf("main: Process CCU rotate: %d\n", rotate);
 #endif
 
@@ -400,7 +400,7 @@ int main(int argc, char **argv)
     ccu->processWhilePressed = true;
 #endif
 
-#ifdef _DEBUG
+#ifdef DAICCUD_DEBUG
     printf("main: Running @Star%d architecture\n", ccu->version);
 #endif
 

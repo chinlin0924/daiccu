@@ -2,8 +2,11 @@ cmake_minimum_required(VERSION 2.8)
 
 project(daiccu)
 
-#show all warnings
+# Show all warnings
 add_definitions(-Wall -Werror)
+
+# Debug
+add_definitions(-DDAICCUD_DEBUG)
 
 if(DEBUG)
     add_definitions(-D_DEBUG)
@@ -47,7 +50,7 @@ if(UNIX)
 
         add_definitions(-DUSE_X11)
     else()
-        message(STATUS "Failed to find X11 libraries. X11 key event injection will be disabled.")
+        message(STATUS "X11 libraries not found. X11 key event injection will be disabled.")
     endif(X11_FOUND AND X11_XTest_FOUND)
 
     set(LIBS ${LIBS} pthread)

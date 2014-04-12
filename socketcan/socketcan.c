@@ -66,7 +66,7 @@ bool socketCanRun(canDev *can)
 #ifdef _DEBUG
     int i = 0;
 
-	printf("Receiving data on CANSOCKET.\n");
+    printf("Receiving data on CANSOCKET.\n");
 #endif
     /* Read a message back from the CAN bus */
     bytes_read = read(*((int*)can->dev), &frame, sizeof(frame));
@@ -83,11 +83,11 @@ bool socketCanRun(canDev *can)
     }
 
 #ifdef _DEBUG
-	printf("Received bytes via CAN: id = 0x%03X ; dlc = %d ; data = 0x", frame.can_id, frame.can_dlc);
+    printf("Received bytes via CAN: id = 0x%03X ; dlc = %d ; data = 0x", frame.can_id, frame.can_dlc);
     for (i = 0; i < frame.can_dlc; i++) {
-		printf("%02X ", frame.data[i]);
-	}
-	printf("\n");
+        printf("%02X ", frame.data[i]);
+    }
+    printf("\n");
     printf("Received a can message\n");
 #endif
 
@@ -177,11 +177,11 @@ bool socketCanTransmit(canDev *can, const uint32_t id, const uint8_t dlc,
     }
 
 #ifdef _DEBUG
-	printf("Sending bytes via CAN: id = 0x%03X ; dlc = %d ; data = 0x", id, dlc);
+    printf("Sending bytes via CAN: id = 0x%03X ; dlc = %d ; data = 0x", id, dlc);
     for (i = 0; i < dlc; i++) {
-		printf("%02X ", data[i]);
-	}
-	printf("\n");
+        printf("%02X ", data[i]);
+    }
+    printf("\n");
 #endif
 
     /* Send frame */

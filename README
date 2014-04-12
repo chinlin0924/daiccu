@@ -79,8 +79,22 @@ Running the application
 If your OS is Linux, make sure 'libx11-dev' and 'libxtst-dev' is installed
 ('sudo apt-get install libx11-dev libxtst-dev').
 
-Execute the 'daiccu' executable from cmd line and pass the port name (e.g.
-'daiccu.exe COM3' on Windows or './daiccu /dev/ttyUSB0' on Linux systems).
+Execute the 'daiccu' executable from cmd line and pass the port name and CAN
+architecture.
+
+on Windows:
+
+  $ daiccud.exe --canusb COM3 --star0
+
+on Linux with CANUSB adapter:
+
+  $ daiccud --canusb /dev/ttyUSB0 --star0
+
+on Linux with socketcan:
+
+  $ ip link set can0 up type can bitrate 125000
+  $ daiccusd --socketcan can0 --star0
+
 You can determine the correct port name by looking it up on the 'Device Manager'
 (Windows) or by typing 'dmesg | grep tty' in your shell (Linux).
 

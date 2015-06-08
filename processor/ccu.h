@@ -68,7 +68,10 @@ typedef enum {
     CcuCar                  = 21,
     CcuMenu                 = 22,
     CcuMute                 = 23,
-#define CCU_COMMANDS_MAX_STAR2 23
+    CcuEject                = 24,
+    CcuECO                  = 25,
+#define CCU_COMMANDS_MAX_STAR2 25
+    CcuVolume               = 31,
 
     /* Number Pad */
 #define NPAD_COMMANDS_OFFSET 32
@@ -103,8 +106,25 @@ typedef enum {
     NPadPound_Touched       = 60,
     NPadPound_Pressed       = 61,
     NPadStar_Touched        = 62,
-    NPadStar_Pressed        = 63
+    NPadStar_Pressed        = 63,
 #define NPAD_COMMANDS_MAX 63
+
+    /* Touch Pad */
+#define TPAD_COMMANDS_OFFSET 64
+    TPadBack_Touched        = 64,
+    TPadBack_Pressed        = 65,
+    TPadBkGrndAudio_Touched = 66,
+    TPadBkGrndAudio_Pressed = 67,
+    TPadMenu_Touched        = 68,
+    TPadMenu_Pressed        = 69,
+    TPadSensorArea_Touched  = 70,
+    TPadSensorArea_Pressed  = 71,
+#define TPAD_COMMANDS_MAX 71
+
+    /* Steering Wheel */
+#define STWHL_COMMANDS_OFFSET 96
+    StWhlPTT                = 96
+#define STWHL_COMMANDS_OFFSET 96
 
 } CcuCommands;
 
@@ -117,6 +137,7 @@ typedef struct {
     uint16_t lastPosition;
     uint32_t lastCmdsMask;
     uint32_t lastNPadMask;
+    uint32_t lastTPadMask;
 
     void *handle;
     int version;

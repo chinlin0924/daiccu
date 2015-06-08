@@ -60,6 +60,8 @@
 #define CAN_STAT1_0_CARKEY    0X40
 #define CAN_STAT1_0_RETURNKEY 0X80
 
+#define CAN_STAT1_1_ECO       0X03
+
 #define CAN_STAT1_2_CTRL_C_C  0X01
 #define CAN_STAT1_2_CTRL_C_N  0X02
 #define CAN_STAT1_2_CTRL_C_NE 0X04
@@ -70,8 +72,11 @@
 #define CAN_STAT1_2_CTRL_C_W  0X80
 
 #define CAN_STAT1_3_CTRL_C_NW 0X01
+#define CAN_STAT1_3_VOLUME_RQ 0X0E
 #define CAN_STAT1_3_MENUKEY   0X20
 #define CAN_STAT1_3_MUTEKEY   0X40
+
+#define CAN_STAT1_5_EJECT     0XC0
 
 const char* ccuCommandToString(CcuCommands cmd)
 {
@@ -100,6 +105,9 @@ const char* ccuCommandToString(CcuCommands cmd)
     case CcuCar:                    return "car";
     case CcuMenu:                   return "menu";
     case CcuMute:                   return "mute";
+    case CcuEject:                  return "eject";
+    case CcuECO:                    return "ECO switch";
+    case CcuVolume:                 return "volume";
     case NPad0_Touched:             return "0 touched";
     case NPad0_Pressed:             return "0 pressed";
     case NPad1_Touched:             return "1 touched";
@@ -132,6 +140,15 @@ const char* ccuCommandToString(CcuCommands cmd)
     case NPadFavorite_Pressed:      return "favorite pressed";
     case NPadClear_Touched:         return "clear touched";
     case NPadClear_Pressed:         return "clear pressed";
+    case TPadBack_Touched:          return "back touched";
+    case TPadBack_Pressed:          return "back pressed";
+    case TPadBkGrndAudio_Touched:   return "background audio touched";
+    case TPadBkGrndAudio_Pressed:   return "background audio pressed";
+    case TPadMenu_Touched:          return "menu touched";
+    case TPadMenu_Pressed:          return "menu pressed";
+    case TPadSensorArea_Touched:    return "sensor area touched";
+    case TPadSensorArea_Pressed:    return "sensor area pressed";
+    case StWhlPTT:                  return "push-to-talk";
     default:                        return "unknown";
     }
 }
@@ -164,6 +181,7 @@ ccuProcessor* ccuProcessorGet(int argc, char **argv)
     ccu->lastPosition           = ccu->startPosition;
     ccu->lastCmdsMask           = 0;
     ccu->lastNPadMask           = 0;
+    ccu->lastTPadMask           = 0;
 
     /* Init callbacks */
     ccu->handle                 = 0;
@@ -268,6 +286,9 @@ bool ccuSetRotaryRange(ccuProcessor *ccu, int start, int max)
 #define ccuProcessorProcessFlags(byte, mask, cmd) \
     if (byte & mask) current |= (1 << cmd);
 
+#define ccuProcessorProcess2Flags(byte, mask, cmd) \
+    if (byte & mask && mask != (byte & mask)) current |= (1 << cmd);
+
 static void ccuProcessorCommands(ccuProcessor *ccu, int offset, int max,
                                  uint32_t current, uint32_t changed)
 {
@@ -341,6 +362,13 @@ static bool ccuProcessorStat1(ccuProcessor *ccu, uint8_t dlc,
     /*printf("Ccu: Stat 1: %02x %02x %02x %02x %02x %02x\n",
            data[0], data[1], data[2], data[3], data[4], data[5]);*/
 
+    // Process Volume request
+    current = (data[3] & CAN_STAT1_3_VOLUME_RQ) >> 1;
+    if (current != 3 && current != 0x7) {
+        if (ccu->ccuProcessCommand)
+            ccu->ccuProcessCommand(ccu->handle, CcuVolume, ((int)current) - 3);
+    }
+
     /* Compile CCU directions mask */
     current = data[2] >> 1;
     if (data[3] & 0x01) current |= 0x80;
@@ -355,10 +383,14 @@ static bool ccuProcessorStat1(ccuProcessor *ccu, uint8_t dlc,
     ccuProcessorProcessFlags(data[0], CAN_STAT1_0_CARKEY,    CcuCar);
     ccuProcessorProcessFlags(data[0], CAN_STAT1_0_RETURNKEY, CcuBack);
 
+    ccuProcessorProcess2Flags(data[1], CAN_STAT1_1_ECO,      CcuECO);
+
     ccuProcessorProcessFlags(data[2], CAN_STAT1_2_CTRL_C_C,  CcuSelect);
 
     ccuProcessorProcessFlags(data[3], CAN_STAT1_3_MENUKEY,   CcuMenu);
     ccuProcessorProcessFlags(data[3], CAN_STAT1_3_MUTEKEY,   CcuMute);
+
+    ccuProcessorProcess2Flags(data[5], CAN_STAT1_5_EJECT,    CcuEject);
 
     changed = ccu->lastCmdsMask ^ current;
     ccu->lastCmdsMask = current;
@@ -409,6 +441,21 @@ static bool ccuProcessorStat2(ccuProcessor *ccu, uint8_t dlc,
 
     if (changed || ccu->processWhilePressed)
         ccuProcessorCommands(ccu, NPAD_COMMANDS_OFFSET, NPAD_COMMANDS_MAX,
+                             current, changed);
+
+    /* Process touch pad command */
+    current = data[4];
+
+    /* Ensure that pressed buttons remain touched */
+    current |= (current & 0xAAAAAAAAA) >> 1;
+
+    changed = ccu->lastTPadMask ^ current;
+    ccu->lastTPadMask = current;
+
+    /*printf("Ccu: TPad mask is: %02x (%02x)\n", current, changed);*/
+
+    if (changed || ccu->processWhilePressed)
+        ccuProcessorCommands(ccu, TPAD_COMMANDS_OFFSET, TPAD_COMMANDS_MAX,
                              current, changed);
 
     return true;

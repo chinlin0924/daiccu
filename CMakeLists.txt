@@ -20,6 +20,7 @@ include_directories(${daiccu_SOURCE_DIR})
 set(SOURCES
     canusb/canusb.c
     processor/ccu.c
+    processor/touchpad.c
     processor/networkmanager.c
 )
 
@@ -29,6 +30,7 @@ set(HEADERS
     canusb/canusb.h
     canusb/serialport.h
     processor/ccu.h
+    processor/touchpad.h
     processor/networkmanager.h
 )
 
@@ -88,3 +90,4 @@ INSTALL(TARGETS daiccud daiccu
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
 )
+

@@ -430,7 +430,6 @@ bool canUsbOpen(canDev *can)
         return true;
     } else {
         printf("CanUsb: Device failed to open!\n");
-        canUsbClose(can);
         return false;
     }
 }

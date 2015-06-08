@@ -20,6 +20,7 @@
  **
  ******************************************************************************/
 #include "processor/ccu.h"
+#include "processor/touchpad.h"
 #include "processor/networkmanager.h"
 
 #ifdef USE_SOCKETCAN
@@ -60,6 +61,7 @@
 
 typedef struct {
     ccuProcessor *ccu;
+    tpadProcessor *tpad;
     canDev *can;
 #ifdef WIN32
 #define NEED_UPDATE_TIME 250
@@ -244,6 +246,44 @@ static void processCcuRotation(void *handle, int rotate)
 #endif
 }
 
+static void processTPadTouch(void *handle, int id, int x, int y, int fingers)
+{
+    (void) handle;
+#ifdef DAICCUD_DEBUG
+    printf("main: Process TPAD (%d) touch: %dx%d, fingers: %d\n", id, x, y,
+           fingers);
+#endif
+}
+
+static void processTPadGesture(void *handle, int id, TPadGestures gesture,
+                                  int fingers, int x, int y, int speed)
+{
+    (void) handle;
+#ifdef DAICCUD_DEBUG
+    printf("main: Process TPAD (%d) gesture: 0x%08x (%s), fingers: %d, position: %dx%d, speed: %d\n",
+           id, gesture, tpadGestureToString(gesture), fingers, x, y, speed);
+#endif
+}
+
+static void processTPadCharacter(void *handle, int id, TPadCharListStates state,
+                                 int entry, unsigned int character,
+                                 TPadCharSets charSet, int probability)
+{
+
+    (void) handle;
+#ifdef DAICCUD_DEBUG
+    if (state == TPadCharListNew) {
+        printf("main: Process TPAD (%d) character list started\n", id);
+    } else if (state == TPadCharListEntry) {
+        printf("main: Process TPAD (%d) character[%d]: \"%lc\" (hex: 0x%08x), probability: %d%%, set: %s\n",
+               id, entry, (wchar_t)character, character, probability,
+               tpadCharacterSetToString(charSet));
+    } else if (state == TPadCharListComplete) {
+        printf("main: Process TPAD (%d) character list completed\n", id);
+    }
+#endif
+}
+
 static void stateChanged(void *handle, bool open)
 {
     daiCcu *canCcu = handle;
@@ -258,6 +298,9 @@ static void messageReceived(void *handle, uint16_t id, uint8_t dlc,
     daiCcu *canCcu = handle;
 
     if (ccuProcessorProcess(canCcu->ccu, id, dlc, bytes))
+        return;
+
+    if (canCcu->tpad && tpadProcessorProcess(canCcu->tpad, id, dlc, bytes))
         return;
 }
 
@@ -303,10 +346,17 @@ static void* ccuRun(void* handle)
 void showCurrentSettings(daiCcu *canCcu)
 {
     ccuProcessor *ccu = canCcu->ccu;
+    tpadProcessor *tpad = canCcu->tpad;
 
     printf("Current settings:\n");
     printf("1: Max rotary range: %d (1 - 9999, 0 to disable range)\n",
            ccu->maxPosition == 0xFFFF ? 0 : ccu->maxPosition);
+    if (tpad) {
+        printf("2: TPAD Mode: %s\n", tpadModeToString(tpad->mode));
+        printf("3: Haptics: %d\n", tpad->haptics);
+        printf("4: Max directions: %s\n", tpadMaxDirectionToString(tpad->maxDir));
+        printf("5: Character set: %s\n", tpadCharacterSetToString(tpad->charSet));
+    }
 }
 
 static int getnumber()
@@ -320,7 +370,10 @@ static int getnumber()
 void showSettingsMenu(daiCcu *canCcu)
 {
     ccuProcessor *ccu = canCcu->ccu;
+    tpadProcessor *tpad = canCcu->tpad;
+
     int number = -1;
+    int i;
 
     do {
         showCurrentSettings(canCcu);
@@ -354,6 +407,37 @@ void showSettingsMenu(daiCcu *canCcu)
             break;
         }
 
+        /* TPAD */
+
+        case 2: {
+            if (!tpad) break;
+            printf("Select TDPAD mode.\n");
+            for(i = 0; i <= 3; i++)
+                printf(DAICCU_SETTINGS, i+1, tpadModeToString(i));
+            tpadSetMode(tpad, (TPadGestures)getnumber()-1);
+            break;
+        }
+        case 3: {
+            if (!tpad) break;
+            tpadSetHaptics(tpad, !tpad->haptics);
+            break;
+        }
+        case 4: {
+            if (!tpad) break;
+            printf("Select max directions.\n");
+            for(i = 0; i <= 2; i++)
+                printf(DAICCU_SETTINGS, i+1, tpadMaxDirectionToString(i));
+            tpadSetMaxDirections(tpad, (TPadMaxDirections)getnumber()-1);
+            break;
+        }
+        case 5: {
+            if (!tpad) break;
+            printf("Select character set.\n");
+            for(i = 0; i <= TPAD_CHARSET_MAX; i++)
+                printf(DAICCU_SETTINGS, i+1, tpadCharacterSetToString(i));
+            tpadSetCharacterSet(tpad, (TPadCharSets)getnumber()-1);
+            break;
+        }
         default:
             printf("Wrong input: %d\n", number);
             return;
@@ -388,6 +472,7 @@ int main(int argc, char **argv)
 {
     daiCcu canCcu;
     ccuProcessor *ccu = 0;
+    tpadProcessor *tpad = 0;
     canDev *can = 0;
 
     /* Init CCU */
@@ -404,6 +489,16 @@ int main(int argc, char **argv)
     printf("main: Running @Star%d architecture\n", ccu->version);
 #endif
 
+    /* Init TouchPad */
+    if (ccu->version > 0) {
+        tpad = tpadProcessorGet(argc, argv);
+        if (!tpad) return -1;
+        tpad->handle = &canCcu;
+        tpad->tpadProcessTouch = processTPadTouch;
+        tpad->tpadProcessGesture = processTPadGesture;
+        tpad->tpadProcessCharacter = processTPadCharacter;
+    }
+
     /* Init CAN */
     can = CAN_PREFIX_Get(argc, argv);
     if (!can) return -1;
@@ -415,9 +510,11 @@ int main(int argc, char **argv)
     /* Init handles */
     canCcu.can = can;
     canCcu.ccu = ccu;
+    canCcu.tpad = tpad;
 
     if (!CAN_PREFIX_Open(canCcu.can)) {
         printf("main: Open CAN failed!\n");
+        CAN_PREFIX_Close(canCcu.can);
         return -1;
     }
 
